@@ -5,6 +5,7 @@ import Home from '@/views/home.vue'
 import Article from '@/views/article.vue'
 import Fans from '@/views/fans.vue'
 import Fault from '@/views/fault.vue'
+import Pictures from '@/views/pictures.vue'
 Vue.use(VueRouter)
 const router = new VueRouter({
   routes: [
@@ -14,7 +15,8 @@ const router = new VueRouter({
       component: Home,
       children: [
         { path: '/article', component: Article },
-        { path: '/fans', component: Fans }
+        { path: '/fans', component: Fans },
+        { path: '/pictures', component: Pictures }
       ]
     },
     { path: '*', component: Fault }

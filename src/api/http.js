@@ -34,3 +34,21 @@ export const getUserInitInfo = () => {
 
   })
 }
+/**
+   * 请求文章列表内容 渲染表格
+   */
+
+export const getActicleList = (query) => {
+  return http({
+    method: 'get',
+    url: '/mp/v1_0/articles',
+    params: query || {}
+  })
+}
+
+export const getArticleChannels = () => {
+  return http({
+    method: 'get',
+    url: '/mp/v1_0/channels'
+  })
+}

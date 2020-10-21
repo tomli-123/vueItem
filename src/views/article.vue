@@ -11,29 +11,32 @@
   <div class="text item">
     <el-form ref="form" :model="form" label-width="80px">
  <el-form-item label="状态">
-    <el-radio-group v-model="form.resource">
-      <el-radio label="全部"></el-radio>
-      <el-radio label="草稿"></el-radio>
-       <el-radio label="待审核"></el-radio>
-      <el-radio label="审核通过"></el-radio>
-       <el-radio label="审核失败"></el-radio>
-      <el-radio label="已删除"></el-radio>
+    <el-radio-group v-model="form.status">
+      <el-radio :label="null">全部</el-radio>
+      <el-radio :label="0">草稿</el-radio>
+       <el-radio :label="1">待审核</el-radio>
+      <el-radio :label="2">审核通过</el-radio>
+       <el-radio :label="3">审核失败</el-radio>
+      <el-radio :label="4">已删除</el-radio>
     </el-radio-group>
   </el-form-item>
   <el-form-item label="频道">
-    <el-select v-model="form.region" placeholder="请选择频道">
-      <el-option label="区域一" value="shanghai"></el-option>
-      <el-option label="区域二" value="beijing"></el-option>
+    <el-select clearable v-model="form.channel_id" placeholder="请选择频道">
+      <el-option v-for="item in channels" :key="item.id" :label="item.name" :value="item.id"></el-option>
     </el-select>
   </el-form-item>
   <el-form-item label="日期">
-    <el-col :span="11">
-      <el-date-picker type="date" placeholder="选择日期" v-model="form.date1" style="width: 100%;"></el-date-picker>
-    </el-col>
-    <el-col class="line" :span="2">-</el-col>
-    <el-col :span="11">
-      <el-time-picker placeholder="选择时间" v-model="form.date2" style="width: 100%;"></el-time-picker>
-    </el-col>
+      <div class="block">
+        <el-date-picker
+        format="yyyy 年 MM 月 dd 日"
+      value-format="yyyy-MM-dd"
+          v-model="form.date"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期">
+        </el-date-picker>
+     </div>
   </el-form-item>
 
   <el-form-item>
@@ -45,7 +48,7 @@
 <!-- 表格 -->
 <el-card class="box-card mar">
   <div slot="header" class="clearfix">
-    <span>根据筛选条件共查询到6666条数据</span>
+    <span>根据筛选条件共查询到{{total_count}}条数据 现在是第{{formCopy.page}}页</span>
   </div>
   <div  class="text item">
     <template>
@@ -53,21 +56,43 @@
       :data="tableData"
       style="width: 100%">
       <el-table-column
-        prop="date"
+        prop="cover"
         label="封面"
         >
+    <template slot-scope="scope">
+<div>
+            <el-image
+            style="width: 150px; height: 100px"
+            :src="scope.row.cover.images[0]"
+            fit="cover">
+           <div slot="error" class="image-slot">
+        <img  style="width: 150px; height: 100px" src="../assets/error.gif" alt="">
+      </div>
+            </el-image>
+            </div>
+     </template>
+
       </el-table-column>
       <el-table-column
-        prop="name"
+        prop="title"
         label="标题"
       >
       </el-table-column>
       <el-table-column
-        prop="address"
+        prop="status"
         label="状态">
+        <template slot-scope="scope">
+          <div>
+            <p v-if="scope.row.status === 0">草稿</p>
+            <p v-if="scope.row.status === 1">待审核</p>
+            <p v-if="scope.row.status === 2">审核通过</p>
+            <p v-if="scope.row.status === 3">审核失败</p>
+            <p v-if="scope.row.status === 4">已删除</p>
+            </div>
+        </template>
       </el-table-column>
        <el-table-column
-        prop="address"
+        prop="pubdate"
         label="发布时间">
       </el-table-column>
           <el-table-column
@@ -81,8 +106,17 @@
     </el-table-column>
     </el-table>
   </template>
-
   </div>
+ <div class="pag">
+    <el-pagination
+    :current-page="formCopy.page"
+    @current-change="changePage"
+  background
+  :page-size="formCopy.per_page"
+  layout="prev, pager, next"
+  :total="total_count">
+</el-pagination>
+ </div>
 </el-card>
 
     <!-- 容器 -->
@@ -90,42 +124,84 @@
 </template>
 
 <script>
+import { getActicleList, getArticleChannels } from '@/api/http.js'
 export default {
   name: 'Article',
   data () {
     return {
       form: {
-        name: '',
-        region: '',
-        date1: '',
-        date2: '',
-        delivery: false,
-        type: [],
-        resource: '',
-        desc: ''
+        channel_id: null,
+        date: null,
+        status: null,
+        page: 1,
+        per_page: 10
       },
-      tableData: [{
-        date: '2016-05-02',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1518 弄'
-      }, {
-        date: '2016-05-04',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1517 弄'
-      }, {
-        date: '2016-05-01',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1519 弄'
-      }, {
-        date: '2016-05-03',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1516 弄'
-      }]
+      tableData: [],
+      total_count: 0,
+      channels: [],
+      formCopy: {
+        channel_id: null,
+        date: null,
+        status: null,
+        page: 1,
+        per_page: 10,
+        total_count: 0
+      }
     }
   },
   methods: {
     onSubmit () {
-      console.log('submit!')
+      this.formCopy.page = 1
+      this.formCopy = { ...this.form }
+      this.localGetArticle()
+    },
+    async changePage (index) {
+      this.formCopy.page = index
+      // this.localGetArticle()
+      const [begin_pubdate, end_pubdate] = this.formCopy.date || []
+      try {
+        const res = await getActicleList({
+          end_pubdate: end_pubdate,
+          begin_pubdate: begin_pubdate,
+          status: this.formCopy.status,
+          channel_id: this.formCopy.channel_id || null,
+          page: this.formCopy.page,
+          per_page: this.formCopy.per_page
+        })
+
+        this.tableData = res.data.data.results
+        this.formCopy.total_count = res.data.data.total_count
+      } catch (err) {
+        console.log(err)
+      }
+    },
+    async  localGetArticle () {
+      const [begin_pubdate, end_pubdate] = this.form.date || []
+      try {
+        const res = await getActicleList({
+          end_pubdate: end_pubdate,
+          begin_pubdate: begin_pubdate,
+          status: this.form.status,
+          channel_id: this.form.channel_id || null,
+          page: this.form.page,
+          per_page: this.form.per_page
+        })
+
+        this.tableData = res.data.data.results
+        this.total_count = res.data.data.total_count
+      } catch (err) {
+        console.log(err)
+      }
+    }
+
+  },
+  async created () {
+    this.localGetArticle()
+    try {
+      const res = await getArticleChannels()
+      this.channels = res.data.data.channels
+    } catch (err) {
+      console.log(err)
     }
   }
 }
@@ -154,5 +230,8 @@ export default {
 
   .box-card {
     // width: 100%;
+  }
+  .pag{
+    margin-top: 30px;
   }
 </style>
